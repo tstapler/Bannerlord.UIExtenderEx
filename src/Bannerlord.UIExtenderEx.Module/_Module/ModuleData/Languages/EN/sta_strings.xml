@@ -23,6 +23,8 @@
     <string id="uX4aVQ2kHc" text="Compiled Prefabs" />
     <string id="Mh7rTq3wPd" text="Use compiled prefabs" />
     <string id="Kb2nWz8sLe" text="Compile patched movies to C# and use them instead of XML. When off, patched movies always load from XML." />
+    <string id="Gq5mZx8vTn" text="Crash loop guard" />
+    <string id="Rb3hCw7yLk" text="When the previous session used cached compiled prefabs and the game did not quit cleanly, set the cache aside and load patched movies from XML until it is rebuilt." />
     <string id="Wn3jKp6eSf" text="Disable generated prefabs" />
     <string id="Yv8bLm2rCg" text="Previous behaviour: the game's pre-compiled prefabs are disabled entirely and every movie loads from XML." />
   </strings>

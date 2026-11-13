@@ -72,6 +72,7 @@ UIExtenderEx provides configurable settings declared in the `<Settings>` section
 | :--- | :--- | :--- |
 | `CompiledPrefabs` | `true` | Enables compiling patched movies to C# at runtime. If set to `false`, patched movies always load via XML, while untouched vanilla movies continue using the game's pre-compiled prefabs. |
 | `DisableGeneratedPrefabs` | `false` | Reverts to legacy pre-v3.0 behavior: disables all pre-compiled prefabs across the entire game, forcing every movie to load via XML. Useful only for diagnostic debugging. |
+| `CrashLoopGuard` | `true` | Protects against a cached build that kills the game without an exception. `CompiledPrefabs/session-open` is written when a cached build is registered and deleted when the game unloads the module on a normal quit. If it is still there at the next start, `CompiledPrefabs.zip` is renamed to `CompiledPrefabs.zip.crashed-<yyyyMMdd-HHmmss>` (the newest 3 are kept), a warning is logged, and patched movies load from XML while the cache is rebuilt. A session that ends any other way, such as the game being killed from Steam, costs one rebuild. |
 | `DumpGeneratedCode` | `false` | Writes generated C# source code to `Modules/Bannerlord.UIExtenderEx/CompiledPrefabs/Sources/<Movie>/<ViewModel>/<Prefab>.gen.cs` for inspection. |
 | `DumpXML` | `false` | Writes the final patched XML of every modified movie to `Modules/Bannerlord.UIExtenderEx/Dumps/<movie>_<module>.xml`. |
 | `RecordTimings` | `false` | Writes how long each movie took to open, and the compile, load and warm-up times behind it, to `CompiledPrefabs/Timings/`, one file per session. For investigating load times; recorded with compiled prefabs off as well, as a baseline. |
@@ -256,6 +257,8 @@ All compiled prefabs and build diagnostics are stored in `Modules/Bannerlord.UIE
 | Path | Description |
 | :--- | :--- |
 | `CompiledPrefabs.zip` | The primary cache containing compiled assemblies and `cache.txt` metadata. |
+| `session-open` | Present while a session that used a cached build is running. Left behind by a session that did not end cleanly, see `CrashLoopGuard`. |
+| `CompiledPrefabs.zip.crashed-<yyyyMMdd-HHmmss>` | A cache set aside by `CrashLoopGuard`, the newest 3 are kept. Safe to delete; attach one to a bug report. |
 | `Sources/<Movie>/<ViewModel>/` | Generated C# source files (`.gen.cs`), generated when `DumpGeneratedCode` is enabled. |
 | `Failed/<Movie>/<ViewModel>/` | Contains `errors.txt` explaining why a movie failed generation or compilation. Cleared automatically upon a successful build. |
 | `Timings/<yyyyMMdd-HHmmss>-<pid>.tsv` | With `RecordTimings`, one tab-separated file per session: `time`, `thread`, `event` (`load movie`, `decide`, `compile`, `load assembly`, `register`, `preload`, `warm-up generator`, `warm-up compiler`), `movie`, `variant`, `ms`, `detail`. At most 5000 lines a session; the 10 newest sessions are kept. Starting the cache over leaves it alone. |

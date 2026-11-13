@@ -65,6 +65,8 @@ public sealed class CompiledPrefabManager
     private readonly object _cacheLock = new();
     private bool _cacheChecked;
     private PrefabCache? _cache;
+    private PrefabSessionGuard? _sessionGuard;
+    private readonly HashSet<PrefabKey> _announced = [];
     private readonly DateTime _sessionStart = DateTime.UtcNow;
     private readonly object _timingsLock = new();
     private PrefabTimings? _timings;
@@ -355,7 +357,12 @@ public sealed class CompiledPrefabManager
     /// </summary>
     private bool TryUseCachedBuild(GeneratedPrefabContext context, PrefabKey key, string fingerprint)
     {
-        if (TryReadFromCache(key, fingerprint) is not { } cached || !TryRegister(context, key, fingerprint, cached.Entry.Dependencies, cached.Assembly))
+        if (TryReadFromCache(key, fingerprint) is not { } cached)
+            return false;
+
+        // Before the registration: a game that dies in it must still leave the marker
+        _sessionGuard?.MarkOpen();
+        if (!TryRegister(context, key, fingerprint, cached.Entry.Dependencies, cached.Assembly))
             return false;
 
         if (GetCache() is { } cache)
@@ -828,6 +835,7 @@ public sealed class CompiledPrefabManager
                 return _cache;
             _cacheChecked = true;
 
+            QuarantineAfterUncleanSession(directory);
             try
             {
                 _cache = new PrefabCache(directory, _environment.CacheGeneration, _environment.SeedCaches);
@@ -837,6 +845,59 @@ public sealed class CompiledPrefabManager
                 Trace.TraceWarning("UIExtenderEx: the compiled prefab cache is unavailable, prefabs are recompiled every session: {0}", e);
             }
             return _cache;
+        }
+    }
+
+    /// <summary>
+    /// Sets the archive aside, before it is opened, when the last session used a cached build and never unloaded the module.
+    /// </summary>
+    private void QuarantineAfterUncleanSession(string directory)
+    {
+        try
+        {
+            if (!_environment.CrashLoopGuard)
+                return;
+            _sessionGuard = new PrefabSessionGuard(directory);
+            _sessionGuard.QuarantinePreviousSession();
+        }
+        catch (Exception e)
+        {
+            Trace.TraceWarning("UIExtenderEx: the crash loop guard could not run: {0}", e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Records that the game unloaded the module, which it does on a normal quit, so the next start trusts the cache.
+    /// </summary>
+    public void OnSessionEnded()
+    {
+        try
+        {
+            _sessionGuard?.MarkClosed();
+        }
+        catch (Exception e)
+        {
+            Trace.TraceWarning("UIExtenderEx: could not close the crash loop guard: {0}", e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Logs and flushes a line the first time a compiled variant is about to be built into a movie, so a process that dies
+    /// without an exception leaves its last line near the failure instead of at the registration.
+    /// </summary>
+    public void OnMovieAboutToLoad(string movieName, string variant)
+    {
+        try
+        {
+            var key = new PrefabKey(movieName, variant);
+            if (IsDisabled || !_registered.ContainsKey(key) || !_announced.Add(key))
+                return;
+            Trace.TraceInformation("UIExtenderEx: about to instantiate compiled prefab '{0}' for '{1}'", movieName, variant);
+            Trace.Flush();
+        }
+        catch (Exception e)
+        {
+            Trace.TraceWarning("UIExtenderEx: could not log the load of '{0}': {1}", movieName, e.Message);
         }
     }
 

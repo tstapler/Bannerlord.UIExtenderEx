@@ -10,6 +10,7 @@ using NUnit.Framework;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -90,6 +91,7 @@ public class CompiledPrefabManagerTests
             set => _dumpGeneratedCode = value;
         }
         public bool RecordTimings { get; set; }
+        public bool CrashLoopGuard { get; set; }
         public string? CacheDirectory { get; set; }
         public string? CacheGeneration { get; set; } = "generation-1";
         public IReadOnlyList<string> SeedCaches { get; set; } = [];
@@ -284,6 +286,98 @@ public class CompiledPrefabManagerTests
         Assert.That(_environment.GenerateCalls, Is.EqualTo(0));
         Assert.That(_compiler.Calls, Is.EqualTo(0));
         AssertRegistered(_widgetFactory.GeneratedPrefabContext);
+    }
+
+    private string MarkerPath => Path.Combine(_cacheDirectory, PrefabSessionGuard.MarkerFileName);
+
+    [Test]
+    public void CachedBuild_LeavesTheSessionMarker_AndACleanEndRemovesIt()
+    {
+        _environment.CrashLoopGuard = true;
+        CacheOnDisk("fingerprint-a");
+
+        Assert.That(TryUse(), Is.True, "test premise: the cached build is used");
+        Assert.That(File.Exists(MarkerPath), Is.True);
+
+        _manager.OnSessionEnded();
+
+        Assert.That(File.Exists(MarkerPath), Is.False);
+    }
+
+    [Test]
+    public void BuildCompiledThisSession_LeavesNoMarker()
+    {
+        _environment.CrashLoopGuard = true;
+
+        TryUse();
+        TryUse();
+
+        Assert.That(File.Exists(MarkerPath), Is.False, "only a build read back from the cache can be the one that kills the next start");
+    }
+
+    [Test]
+    public void StartAfterAnUncleanSession_SetsTheArchiveAside_AndUsesXml()
+    {
+        _environment.CrashLoopGuard = true;
+        CacheOnDisk("fingerprint-a");
+        TryUse();
+        Assert.That(File.Exists(MarkerPath), Is.True, "test premise: the session never ended");
+
+        var next = new FakeEnvironment { CacheDirectory = _cacheDirectory, Compiler = new FakeCompiler(), RunImmediately = false, CrashLoopGuard = true };
+        var restarted = new CompiledPrefabManager(next);
+
+        Assert.That(restarted.TryUseCompiledPrefab(_widgetFactory, Movie, _dataSource), Is.False, "the cached build is not used, XML this time");
+        Assert.That(next.GenerateCalls, Is.EqualTo(1), "it is rebuilt instead");
+        Assert.That(File.Exists(MarkerPath), Is.False);
+        Assert.That(Directory.EnumerateFiles(_cacheDirectory, PrefabCache.FileName + PrefabSessionGuard.QuarantineInfix + "*"), Has.Exactly(1).Items);
+    }
+
+    [Test]
+    public void GuardOff_NeitherWritesTheMarker_NorSetsTheArchiveAside()
+    {
+        CacheOnDisk("fingerprint-a");
+        File.WriteAllText(MarkerPath, "left by an earlier version");
+
+        Assert.That(TryUse(), Is.True);
+
+        Assert.That(Directory.EnumerateFiles(_cacheDirectory, PrefabCache.FileName + PrefabSessionGuard.QuarantineInfix + "*"), Is.Empty);
+        File.Delete(MarkerPath);
+        var again = new CompiledPrefabManager(new FakeEnvironment { CacheDirectory = _cacheDirectory, Compiler = new FakeCompiler(), CreatorLoader = _environment.CreatorLoader });
+        Assert.That(again.TryUseCompiledPrefab(_widgetFactory, Movie, _dataSource), Is.True);
+        Assert.That(File.Exists(MarkerPath), Is.False);
+    }
+
+    private sealed class CapturingListener : TraceListener
+    {
+        public List<string> Lines { get; } = [];
+        public override void Write(string? message) => Lines.Add(message ?? string.Empty);
+        public override void WriteLine(string? message) => Lines.Add(message ?? string.Empty);
+        public override void TraceEvent(TraceEventCache? eventCache, string source, TraceEventType eventType, int id, string? format, params object?[]? args) =>
+            Lines.Add(args is { Length: > 0 } ? string.Format(format ?? string.Empty, args) : format ?? string.Empty);
+    }
+
+    [Test]
+    public void Breadcrumb_IsLoggedOnceForARegisteredPrefab_AndNotForAnUnregisteredOne()
+    {
+        var variant = typeof(CodegenTestVM).FullName!;
+        var listener = new CapturingListener();
+        Trace.Listeners.Add(listener);
+        try
+        {
+            _manager.OnMovieAboutToLoad(Movie, variant);
+            Assert.That(listener.Lines.Where(x => x.Contains("about to instantiate")), Is.Empty, "nothing is registered yet");
+
+            CacheOnDisk("fingerprint-a");
+            TryUse();
+            _manager.OnMovieAboutToLoad(Movie, variant);
+            _manager.OnMovieAboutToLoad(Movie, variant);
+
+            Assert.That(listener.Lines.Where(x => x.Contains("about to instantiate compiled prefab") && x.Contains(Movie)), Has.Exactly(1).Items);
+        }
+        finally
+        {
+            Trace.Listeners.Remove(listener);
+        }
     }
 
     [Test]

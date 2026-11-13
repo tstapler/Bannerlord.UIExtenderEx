@@ -142,6 +142,7 @@ public class SettingsSubModuleXmlTests
         [
             .. typeof(SettingsSubModuleXml).GetProperties().Select(x => (x.Name, (bool) x.GetValue(store)!)),
             (CompiledPrefabSettings.CompiledPrefabsKey, CompiledPrefabSettings.CompiledPrefabs),
+            (CompiledPrefabSettings.CrashLoopGuardKey, CompiledPrefabSettings.CrashLoopGuard),
             (CompiledPrefabSettings.DumpGeneratedCodeKey, CompiledPrefabSettings.DumpGeneratedCode),
             (CompiledPrefabSettings.RecordTimingsKey, CompiledPrefabSettings.RecordTimings),
         ];
