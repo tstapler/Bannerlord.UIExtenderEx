@@ -104,6 +104,7 @@ UIExtenderEx now keeps AutoGens enabled and recompiles only the movies a patch a
 
 Settings control this behaviour. They are declared in the `<Settings>` block of `SubModule.xml`, which is also where they are stored: each property has a `Default`, and the current value is a `Value` attribute next to it. Edit it by hand, or let [MCM](https://github.com/Aragas/Bannerlord.MBOptionScreen) do it: when MCM is loaded it shows the block in its options screen and writes changes back into `SubModule.xml`. Updating UIExtenderEx replaces that file, so changed values need to be applied again afterwards.
 * `CompiledPrefabs` (default `true`): set to `false` to skip the recompilation; affected movies then always load from XML.
+* `CrashLoopGuard` (default `true`): when the previous session used a cached compiled prefab and the game did not quit cleanly, set `CompiledPrefabs/CompiledPrefabs.zip` aside as `CompiledPrefabs.zip.crashed-<timestamp>` and load patched movies from XML until the cache is rebuilt.
 * `DumpGeneratedCode` (default `false`): write the generated C# next to the cached assemblies.
 * `DisableGeneratedPrefabs` (default `false`): the previous behaviour, every movie loads from XML.
 * `DumpXML` (default `false`): dump the patched XML of every movie.

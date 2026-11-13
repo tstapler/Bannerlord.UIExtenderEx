@@ -77,6 +77,7 @@ public sealed class CompiledPrefabRuntime : IPrefabRuntime
 
         GeneratedPrefabContextPatch.Patch(Harmony);
         GauntletMovieTimingPatch.Patch(Harmony);
+        MovieBreadcrumbPatch.Patch(Harmony);
         PrefabRuntimes.Register(Instance);
     }
 
@@ -89,6 +90,11 @@ public sealed class CompiledPrefabRuntime : IPrefabRuntime
     /// Preloads the cached builds the start-up preload left out because a module had not loaded what they reference yet.
     /// </summary>
     public static void PreloadDeferredBuilds() => Manager.PreloadDeferredBuilds();
+
+    /// <summary>
+    /// Tells the cache that the game unloaded the module, which it does on a normal quit.
+    /// </summary>
+    public static void EndSession() => Manager.OnSessionEnded();
 
     /// <summary>
     /// Attempts to serve a compiled movie variant for the specified movie name and ViewModel data source.

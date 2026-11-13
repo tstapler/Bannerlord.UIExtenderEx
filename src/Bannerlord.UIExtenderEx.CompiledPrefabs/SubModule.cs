@@ -35,6 +35,15 @@ public class SubModule : MBSubModuleBase
         CompiledPrefabRuntime.WarmUp();
     }
 
+    /// <summary>
+    /// The game unloads its modules on a normal quit: tells the compiled prefab cache that this session ended cleanly.
+    /// </summary>
+    protected override void OnSubModuleUnloaded()
+    {
+        base.OnSubModuleUnloaded();
+        CompiledPrefabRuntime.EndSession();
+    }
+
     private bool _mainMenuSet;
 
     /// <summary>

@@ -72,6 +72,7 @@
     </Group>
     <Group Name="{=uX4aVQ2kHc}Compiled Prefabs" Order="0">
       <Bool Id="CompiledPrefabs" DisplayName="{=Mh7rTq3wPd}Use compiled prefabs" HintText="{=Kb2nWz8sLe}Compile patched movies to C# and use them instead of XML. When off, patched movies always load from XML." Default="true" IsToggle="true" />
+      <Bool Id="CrashLoopGuard" DisplayName="{=Gq5mZx8vTn}Crash loop guard" HintText="{=Rb3hCw7yLk}When the previous session used cached compiled prefabs and the game did not quit cleanly, set the cache aside and load patched movies from XML until it is rebuilt." Default="true" />
       <Bool Id="DisableGeneratedPrefabs" DisplayName="{=Wn3jKp6eSf}Disable generated prefabs" HintText="{=Yv8bLm2rCg}Previous behaviour: the game's pre-compiled prefabs are disabled entirely and every movie loads from XML." Default="false" />
     </Group>
   </Settings>

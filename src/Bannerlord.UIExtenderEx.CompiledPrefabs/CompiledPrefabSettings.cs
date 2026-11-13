@@ -8,6 +8,9 @@ public static class CompiledPrefabSettings
     /// <summary>Configuration key that toggles compiled prefab execution.</summary>
     public const string CompiledPrefabsKey = "CompiledPrefabs";
 
+    /// <summary>Configuration key that toggles setting the cache aside when the previous session did not end cleanly.</summary>
+    public const string CrashLoopGuardKey = "CrashLoopGuard";
+
     /// <summary>Configuration key that toggles emitting generated C# source code files to disk.</summary>
     public const string DumpGeneratedCodeKey = "DumpGeneratedCode";
 
@@ -19,6 +22,13 @@ public static class CompiledPrefabSettings
     {
         get => RuntimeSettings.Get(CompiledPrefabsKey, true);
         set => RuntimeSettings.Set(CompiledPrefabsKey, value);
+    }
+
+    /// <summary>Gets or sets a value indicating whether the cache is moved aside, and the session runs on XML, when the previous session used a cached build and never unloaded the module (<see cref="PrefabSessionGuard"/>).</summary>
+    public static bool CrashLoopGuard
+    {
+        get => RuntimeSettings.Get(CrashLoopGuardKey, true);
+        set => RuntimeSettings.Set(CrashLoopGuardKey, value);
     }
 
     /// <summary>Gets or sets a value indicating whether generated C# source code is written to disk alongside cached assemblies for debugging.</summary>

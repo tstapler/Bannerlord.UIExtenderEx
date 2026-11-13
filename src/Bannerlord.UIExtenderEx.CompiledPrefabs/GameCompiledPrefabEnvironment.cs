@@ -35,6 +35,8 @@ public sealed class GameCompiledPrefabEnvironment : ICompiledPrefabEnvironment
     /// </summary>
     public bool IsEnabled => CompiledPrefabSettings.CompiledPrefabs && PrefabRuntimes.IsMovieSwitchInstalled;
 
+    public bool CrashLoopGuard => CompiledPrefabSettings.CrashLoopGuard;
+
     public bool DumpGeneratedCode => CompiledPrefabSettings.DumpGeneratedCode;
 
     public bool RecordTimings => CompiledPrefabSettings.RecordTimings;

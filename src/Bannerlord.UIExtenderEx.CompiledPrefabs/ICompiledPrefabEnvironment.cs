@@ -17,6 +17,9 @@ public interface ICompiledPrefabEnvironment
     /// <summary>Gets a value indicating whether compiled prefabs are enabled.</summary>
     bool IsEnabled { get; }
 
+    /// <summary>Gets a value indicating whether the cache is set aside after a session that used a cached build and did not end cleanly (<see cref="PrefabSessionGuard"/>).</summary>
+    bool CrashLoopGuard { get; }
+
     /// <summary>Gets a value indicating whether generated C# sources are dumped to disk.</summary>
     bool DumpGeneratedCode { get; }
 
@@ -87,6 +90,7 @@ public interface ICompiledPrefabEnvironment
 public sealed class DisabledCompiledPrefabEnvironment : ICompiledPrefabEnvironment
 {
     public bool IsEnabled => false;
+    public bool CrashLoopGuard => false;
     public bool DumpGeneratedCode => false;
     public bool RecordTimings => false;
     public string? CacheDirectory => null;
